@@ -26,6 +26,10 @@ class OBJECT_OT_copy_custom_property_to_selected(bpy.types.Operator):
             if obj == active:
                 continue
 
+            # Data-block properties (Objects, Texts, Materials, etc.) are handled
+            # by direct assignment. Blender's ID property system supports storing
+            # references to any bpy.types.ID subclass (data-blocks).
+            # The reference is copied, not the data-block itself.
             obj[self.property_name] = value
 
             ui = obj.id_properties_ui(self.property_name)
@@ -53,8 +57,7 @@ class OBJECT_OT_copy_custom_property_to_selected(bpy.types.Operator):
             OBJECT_OT_copy_custom_property_to_selected.bl_idname,
             text="Copy Custom Property to Selected Objects",
             icon='DUPLICATE'
-        
-        #TODO: This doesnt handle data-block properties properly yet..... unsure how to deal with this
+        )
         op.property_name = context.button_prop.identifier
 
     @staticmethod

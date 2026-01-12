@@ -22,6 +22,10 @@ class OBJECT_OT_duplicate_custom_property(bpy.types.Operator):
         # UI metadata (if any)
         ui_data = active.id_properties_ui(self.property_name)
 
+        # Data-block properties (Objects, Texts, Materials, etc.) are handled
+        # by direct assignment. Blender's ID property system supports storing
+        # references to any bpy.types.ID subclass (data-blocks).
+        # The reference is copied, not the data-block itself.
         active[self.property_name + "COPY"] = value
 
         ui = active.id_properties_ui(self.property_name + "COPY")
