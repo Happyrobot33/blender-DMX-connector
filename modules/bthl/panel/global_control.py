@@ -45,6 +45,14 @@ class GlobalControlPanel(Panel):
             if scene.udp_client_active:
                 status_row = auto_send_box.row()
                 status_row.label(text="Auto-sending active", icon='PLAY')
+        
+        # Sync to selected controls
+        sync_box = layout.box()
+        sync_box.label(text="Object Property Sync")
+        sync_box.prop(scene, "sync_properties_to_selected", text="Sync Active to Selected")
+        if scene.sync_properties_to_selected:
+            sync_row = sync_box.row()
+            sync_row.label(text="Property changes will sync to other selected objects", icon='INFO')
 
         
         # MIDI Timecode controls
