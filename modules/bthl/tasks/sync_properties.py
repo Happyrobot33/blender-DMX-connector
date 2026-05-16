@@ -20,7 +20,9 @@ def _detect_property_changes(new_state: dict, old_state: dict) -> dict:
     """Detect which properties have changed between two snapshots."""
     changes = {}
     for key, value in new_state.items():
-        if key not in old_state or old_state[key] != value:
+        # Only detect as changed if it existed before and the value is different
+        # This prevents detecting all properties as "changed" on first run
+        if key in old_state and old_state[key] != value:
             changes[key] = value
     return changes
 
@@ -58,7 +60,7 @@ def _sync_active_object_properties_to_selected():
         obj_id = id(active_obj)
         prev_state = _last_active_object_state.get(obj_id, {})
         
-        # Detect changes
+        # Detect changes (only properties that existed before and changed)
         changes = _detect_property_changes(current_state, prev_state)
         
         # If there are changes and other objects are selected, copy them
