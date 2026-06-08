@@ -10,11 +10,17 @@ class CustomPropertiesToggleModal(Operator):
     bl_options = {'REGISTER', 'UNDO'}
     
     serialize_invisible_prop_name = "serialize_invisible"
+    sync_to_selected_prop_name = "sync_properties_to_selected"
     
     @staticmethod
     def get_serialize_invisible(context: Context):
         """Get the serialize invisible objects toggle state"""
         return getattr(context.scene, CustomPropertiesToggleModal.serialize_invisible_prop_name, True)
+    
+    @staticmethod
+    def get_sync_to_selected(context: Context):
+        """Get the sync to selected toggle state"""
+        return getattr(context.scene, CustomPropertiesToggleModal.sync_to_selected_prop_name, False)
     
     def execute(self, context: Context):
         """No-op execute for this settings operator"""
@@ -28,9 +34,17 @@ class CustomPropertiesToggleModal(Operator):
             description="Include objects that are not visible when serializing custom properties",
             default=True
         )
+        
+        bpy.types.Scene.sync_properties_to_selected = BoolProperty(
+            name="Sync to Selected",
+            description="Automatically sync property changes from the active object to all other selected objects",
+            default=False
+        )
     
     @staticmethod
     def unregister():
         """Unregister scene properties"""
         if hasattr(bpy.types.Scene, CustomPropertiesToggleModal.serialize_invisible_prop_name):
             del bpy.types.Scene.serialize_invisible
+        if hasattr(bpy.types.Scene, CustomPropertiesToggleModal.sync_to_selected_prop_name):
+            del bpy.types.Scene.sync_properties_to_selected

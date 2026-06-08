@@ -16,7 +16,6 @@ class UDPClientToggleModal(Operator):
     universe_offset_prop_name = "universe_offset"
     auto_send_enabled_prop_name = "auto_send_enabled"
     auto_send_interval_prop_name = "auto_send_interval"
-    sync_to_selected_prop_name = "sync_properties_to_selected"
 
     @staticmethod
     def get_udp_client_state(context: Context):
@@ -41,10 +40,6 @@ class UDPClientToggleModal(Operator):
     @staticmethod
     def get_auto_send_interval(context: Context):
         return getattr(context.scene, UDPClientToggleModal.auto_send_interval_prop_name, 1.0)
-    
-    @staticmethod
-    def get_sync_to_selected(context: Context):
-        return getattr(context.scene, UDPClientToggleModal.sync_to_selected_prop_name, False)
     
     def execute(self, context: Context):
         """Toggle UDP client state and exit"""
@@ -118,13 +113,6 @@ class UDPClientToggleModal(Operator):
             step=10,
             precision=1
         )
-        
-        # Add scene property for syncing properties to selected objects
-        bpy.types.Scene.sync_properties_to_selected = BoolProperty(
-            name="Sync to Selected",
-            description="Automatically sync property changes from the active object to all other selected objects",
-            default=False
-        )
 
     @staticmethod
     def unregister():
@@ -142,6 +130,4 @@ class UDPClientToggleModal(Operator):
             del bpy.types.Scene.auto_send_enabled
         if hasattr(bpy.types.Scene, UDPClientToggleModal.auto_send_interval_prop_name):
             del bpy.types.Scene.auto_send_interval
-        if hasattr(bpy.types.Scene, UDPClientToggleModal.sync_to_selected_prop_name):
-            del bpy.types.Scene.sync_properties_to_selected
 

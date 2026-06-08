@@ -10,46 +10,17 @@ last_timecode_frame = None
 current_port = None
 last_milliseconds = None
 
-def is_timecode_receive_enabled(scene) -> bool:
-    """Check if timecode receiving is enabled for the given scene"""
-    from bthl.operator.receiver_modal import MIDITimecodeToggleModal
-    prop_name = MIDITimecodeToggleModal.timecode_receive_enabled_prop_name
-    return hasattr(scene, prop_name) and getattr(scene, prop_name)
-
-def is_timecode_allow_timeline_move(scene) -> bool:
-    """Check if timeline movement is allowed for the given scene"""
-    from bthl.operator.receiver_modal import MIDITimecodeToggleModal
-    prop_name = MIDITimecodeToggleModal.timecode_allow_timeline_move_prop_name
-    return hasattr(scene, prop_name) and getattr(scene, prop_name)
-
-def get_timecode_port(scene) -> int:
-    """Get the configured timecode port for the given scene"""
-    from bthl.operator.receiver_modal import MIDITimecodeToggleModal
-    prop_name = MIDITimecodeToggleModal.timecode_port_prop_name
-    return getattr(scene, prop_name, 7001)
-
-def get_timecode_offset_frames(scene) -> int:
-    """Get the configured timecode offset in frames for the given scene"""
-    from bthl.operator.receiver_modal import MIDITimecodeToggleModal
-    prop_name = MIDITimecodeToggleModal.timecode_offset_frames_prop_name
-    return getattr(scene, prop_name, 0)
-
-def is_latency_compensation_enabled(scene) -> bool:
-    """Check if latency compensation is enabled for the given scene"""
-    from bthl.operator.receiver_modal import MIDITimecodeToggleModal
-    prop_name = MIDITimecodeToggleModal.timecode_latency_compensation_enabled_prop_name
-    return getattr(scene, prop_name, True)
-
 def receive() -> float:
+    from bthl.operator.receiver_modal import MIDITimecodeToggleModal
     global sock, current_port
     update_rate = 0.001
     scene = bpy.context.scene
 
-    if not is_timecode_receive_enabled(scene):
+    if not MIDITimecodeToggleModal.get_timecode_receive_enabled(bpy.context):
         return update_rate
 
     receivebuffer_size = 64
-    port = get_timecode_port(scene)
+    port = MIDITimecodeToggleModal.get_timecode_port(bpy.context)
 
     # Check if we need to recreate the socket due to port change
     if sock is not None and current_port != port:
@@ -86,7 +57,7 @@ def receive() -> float:
 
         #calculate the delta, and thats what we will use to adjust the frame, this allows for compensation of latency between sender and receiver
         global last_milliseconds
-        if is_latency_compensation_enabled(scene) and milliseconds != last_milliseconds:
+        if MIDITimecodeToggleModal.get_timecode_latency_compensation_enabled(bpy.context) and milliseconds != last_milliseconds:
             currentUTCTime = int(time.time() * 1000)
             latencyCompensation = currentUTCTime - utcSentTime
             compensatedMilliseconds = milliseconds + latencyCompensation
@@ -101,7 +72,7 @@ def receive() -> float:
         frame += int((compensatedMilliseconds / 1000) * fps)
         
         # Apply timecode offset
-        frame_offset = get_timecode_offset_frames(scene)
+        frame_offset = MIDITimecodeToggleModal.get_timecode_offset_frames(bpy.context)
         frame += frame_offset
         
         global last_timecode_frame
@@ -109,7 +80,7 @@ def receive() -> float:
         #check if we are still on this frame, if so do nothing
         should_set_frame = False
         
-        if not is_timecode_allow_timeline_move(scene):
+        if not MIDITimecodeToggleModal.get_timecode_allow_timeline_move(bpy.context):
             # If timeline move is FALSE: set frame whenever scene frame is different
             should_set_frame = (scene.frame_current != frame)
         else:
