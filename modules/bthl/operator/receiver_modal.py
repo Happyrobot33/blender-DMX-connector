@@ -93,8 +93,8 @@ class MIDITimecodeToggleModal(Operator):
 
         bpy.types.Scene.timecode_latency_compensation_enabled = BoolProperty(
             name="Latency Compensation",
-            description="Compensate for network latency when calculating the current timecode frame",
-            default=True
+            description="Compensate for network latency when calculating the current timecode frame. Can be unstable",
+            default=False
         )
 
     @staticmethod

@@ -3,7 +3,9 @@ import mathutils
 import math
 
 def scale_number(unscaled: float, to_min: float, to_max: float, from_min: float, from_max: float) -> float:
-    return (to_max-to_min)*(unscaled-from_min)/(from_max-from_min)+to_min
+    #clamp the value
+    value = (to_max-to_min)*(unscaled-from_min)/(from_max-from_min)+to_min
+    return max(min(value, to_max), to_min)
 
 #these took. WAY TOO LONG. to figure out. save me
 def convert_blender_quat_to_unity_quat(blender_quat: mathutils.Quaternion) -> mathutils.Quaternion:
