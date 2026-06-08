@@ -1,8 +1,9 @@
 import bpy
+from enum import Enum
 
 from bpy.app.handlers import persistent
 
-__all__ = ("Task",)
+__all__ = ("Task", "HandlerType")
 
 
 _handler_names = [
@@ -30,6 +31,31 @@ _handler_names = [
 ]
 
 
+class HandlerType(Enum):
+    """Enum for Blender event handler types"""
+    DEPSGRAPH_UPDATE_PRE = "depsgraph_update_pre"
+    DEPSGRAPH_UPDATE_POST = "depsgraph_update_post"
+    FRAME_CHANGE_PRE = "frame_change_pre"
+    FRAME_CHANGE_POST = "frame_change_post"
+    LOAD_FACTORY_PREFERENCES_PRE = "load_factory_preferences_pre"
+    LOAD_FACTORY_PREFERENCES_POST = "load_factory_preferences_post"
+    LOAD_PRE = "load_pre"
+    LOAD_POST = "load_post"
+    REDO_PRE = "redo_pre"
+    REDO_POST = "redo_post"
+    RENDER_CANCEL = "render_cancel"
+    RENDER_COMPLETE = "render_complete"
+    RENDER_INIT = "render_init"
+    RENDER_PRE = "render_pre"
+    RENDER_POST = "render_post"
+    RENDER_STATS = "render_stats"
+    RENDER_WRITE = "render_write"
+    SAVE_PRE = "save_pre"
+    SAVE_POST = "save_post"
+    UNDO_PRE = "undo_pre"
+    VERSION_UPDATE = "version_update"
+
+
 class Task:
     functions = {}
 
@@ -38,6 +64,14 @@ class Task:
 
         for name in _handler_names:
             funcs = cls.functions.get(name)
+            
+            # Also try with enum values
+            if funcs is None:
+                for handler in HandlerType:
+                    if handler.value == name:
+                        funcs = cls.functions.get(handler)
+                        break
+            
             if not hasattr(funcs, "__iter__"):
                 funcs = [funcs]
 

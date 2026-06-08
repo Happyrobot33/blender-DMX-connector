@@ -2,9 +2,10 @@ import socket
 import time
 import bpy
 from bthl.operator.sender_modal import UDPClientToggleModal
+from bthl.operator.global_settings_modal import GlobalSettingsToggleModal
 from bthl.types.ArtNet import ArtnetDMXPacket, ArtnetPollPacket
 from bthl.tasks.customproperties import update_custom_properties
-from bthl.tasks.task import Task
+from bthl.tasks.task import Task, HandlerType
 from bthl.api.dmxdata import dmx_buffer
 
 def auto_send() -> float:
@@ -35,7 +36,9 @@ def send_udp_packet(ip, port, message, id = 0):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         sock.sendto(message, (ip, port))
-        print(f"Sent message to {ip}:{port} (ID: {id})")
+        # Print if debug is enabled
+        if GlobalSettingsToggleModal.get_debug_enabled(bpy.context):
+            print(f"Sent message to {ip}:{port} (ID: {id})")
     except Exception as e:
         print(f"Error sending message: {e}")
     finally:
@@ -63,7 +66,7 @@ def send(scene, depsgraph):
 
 class UDPClientTasks(Task):
     functions = {
-        "depsgraph_update_post": send,
-        "frame_change_post": send,
-        "load_post": send
+        HandlerType.DEPSGRAPH_UPDATE_POST: send,
+        HandlerType.FRAME_CHANGE_POST: send,
+        HandlerType.LOAD_POST: send
     }

@@ -1,6 +1,6 @@
 import idprop
 import bpy
-from bthl.tasks.task import Task
+from bthl.tasks.task import Task, HandlerType
 from bthl.api.dmxdata import set_channel_value
 from bthl.util.dmx import getColorAsDMX, getTupleAsDMX, getPanTiltAsDMX
 from bthl.util.general import scale_number
@@ -89,12 +89,13 @@ def handleobjectproperties(object: bpy.types.Object):
                         #print("detected text")
                         #exec the text block as python
                         textblock: bpy.types.Text = value
-                        local_dict = {}
-                        #pass in the channel index
-                        local_dict["finalChannel"] = finalChannel
-                        #pass along the object we are referencing
-                        local_dict["object"] = object
-                        exec(textblock.as_string(), {}, local_dict)
+                        globals_dict = {
+                            #"__builtins__": None,
+                            "finalChannel": finalChannel, #pass in the channel index
+                            "object": object,             #pass along the object we are referencing
+                        }
+
+                        exec(textblock.as_string(), globals_dict)
                     #objects are treated as directional pointers for pan/tilt
                     elif typ == bpy.types.Object:
                         target_obj: bpy.types.Object = value
@@ -135,7 +136,18 @@ def handleobjectproperties(object: bpy.types.Object):
 
 def update_custom_properties(scene: bpy.types.Scene, depsgraph: bpy.types.Depsgraph):
     bad_obj_types = ['CAMERA','LAMP','ARMATURE']
-    print("UPDATING DMX PROPERTIES")
+    
+    # Import here to avoid circular imports
+    from bthl.operator.global_settings_modal import GlobalSettingsToggleModal
+    from bthl.operator.customproperties_modal import CustomPropertiesToggleModal
+    
+    # Get toggle states from scene properties
+    debug_enabled = GlobalSettingsToggleModal.get_debug_enabled(bpy.context)
+    serialize_invisible = CustomPropertiesToggleModal.get_serialize_invisible(bpy.context)
+    
+    if debug_enabled:
+        print("UPDATING DMX PROPERTIES")
+    
     for obj in bpy.data.objects:
         if obj.type in bad_obj_types:
             continue
@@ -143,11 +155,18 @@ def update_custom_properties(scene: bpy.types.Scene, depsgraph: bpy.types.Depsgr
         #skip if in library
         if obj.library is not None:
             continue
+        
+        # Skip invisible objects if toggle is disabled
+        if not serialize_invisible and not obj.visible_get():
+            if debug_enabled:
+                print(f"Skipping invisible object: {obj.name}")
+            continue
+        
         handleobjectproperties(obj)
 
 class CustomPropertiesTask(Task):
     functions = {
-        "depsgraph_update_post": update_custom_properties,
-        "frame_change_post": update_custom_properties,
-        "load_post": update_custom_properties
+        HandlerType.DEPSGRAPH_UPDATE_POST: update_custom_properties,
+        HandlerType.FRAME_CHANGE_POST: update_custom_properties,
+        HandlerType.LOAD_POST: update_custom_properties
     }

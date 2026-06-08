@@ -18,6 +18,16 @@ class GlobalControlPanel(Panel):
             return
         scene = context.scene
 
+        # Global Settings
+        global_box = layout.box()
+        global_box.label(text="Global Settings")
+        global_box.prop(scene, "debug_enabled", text="Debug Mode")
+        
+        # Custom Properties Settings
+        custom_props_box = layout.box()
+        custom_props_box.label(text="Custom Properties")
+        custom_props_box.prop(scene, "serialize_invisible", text="Serialize Invisible Objects")
+
         # UDP Client controls
         box = layout.box()
         box.label(text="UDP Client Settings")
