@@ -91,48 +91,52 @@ def handleobjectproperties(object: bpy.types.Object):
                         textblock: bpy.types.Text = value
                         globals_dict = {
                             #"__builtins__": None,
-                            "finalChannel": finalChannel, #pass in the channel index
-                            "object": object,             #pass along the object we are referencing
+                            "finalChannel": finalChannel,      #pass in the channel index
+                            "object": object,                  #pass along the object we are referencing
+                            "object_properties": properties,   #pass along all properties on the object
+                            "current_property": properties[p], #pass along the current property being referenced
                         }
 
                         exec(textblock.as_string(), globals_dict)
                     #objects are treated as directional pointers for pan/tilt
                     elif typ == bpy.types.Object:
-                        target_obj: bpy.types.Object = value
-                        #get world space position lol
-                        target_loc = target_obj.matrix_world.translation
-                        object_matrix = object.matrix_world.copy()
-                        #rotate it 90 degrees on an axis to make it correct
-                        object_matrix = object_matrix @ mathutils.Matrix.Rotation(math.radians(-90), 4, 'Y')
-                        #we want to convert the targets world space location to object space
-                        target_loc = object_matrix.inverted() @ target_loc
-                        #direction = target_loc - object_loc
-                        direction = target_loc
-                        #calculate pan/tilt from direction vector
-                        direction.normalize()
-
-                        #print(rotation.to_euler())
-                        #pan is rotation around z axis
-                        #rounding to truncate float imprecisions (observed as high as e-6)
-                        pan = math.atan2(round(direction.y, 3), round(direction.x, 3))
-                        #tilt is rotation around x axis
-                        tilt = math.asin(round(direction.z, 3))
-                        #wrap both around 360
-                        pan = pan % math.radians(360)
-                        tilt = tilt % math.radians(360)
-                        #read the next two numbers from the description as pan and tilt ranges
-                        desc_parts = properties[p]["description"].split(" ")
-                        pan_range = 540
-                        tilt_range = 540
-                        if len(desc_parts) >= 3:
-                            try:
-                                pan_range = int(desc_parts[1])
-                                tilt_range = int(desc_parts[2])
-                            except ValueError:
-                                pass
-                        dmx = getPanTiltAsDMX(math.degrees(pan), math.degrees(tilt), pan_range, tilt_range, bytesPerAxis=2)
+                        dmx = get_angle_to_target_as_pan_tilt_DMX(object, value, properties[p])
                         for i in range(len(dmx)):
                             set_channel_value(finalChannel + i, dmx[i])
+
+def get_angle_to_target_as_pan_tilt_DMX(object: bpy.types.Object, target_obj: bpy.types.Object, current_property: dict):
+    #get world space position lol
+    target_loc = target_obj.matrix_world.translation
+    object_matrix = object.matrix_world.copy()
+    #rotate it 90 degrees on an axis to make it correct
+    object_matrix = object_matrix @ mathutils.Matrix.Rotation(math.radians(-90), 4, 'Y')
+    #we want to convert the targets world space location to object space
+    target_loc = object_matrix.inverted() @ target_loc
+    #direction = target_loc - object_loc
+    direction = target_loc
+    #calculate pan/tilt from direction vector
+    direction.normalize()
+
+    #print(rotation.to_euler())
+    #pan is rotation around z axis
+    #rounding to truncate float imprecisions (observed as high as e-6)
+    pan = math.atan2(round(direction.y, 3), round(direction.x, 3))
+    #tilt is rotation around x axis
+    tilt = math.asin(round(direction.z, 3))
+    #wrap both around 360
+    pan = pan % math.radians(360)
+    tilt = tilt % math.radians(360)
+    #read the next two numbers from the description as pan and tilt ranges
+    desc_parts = current_property["description"].split(" ")
+    pan_range = 540
+    tilt_range = 540
+    if len(desc_parts) >= 3:
+        try:
+            pan_range = int(desc_parts[1])
+            tilt_range = int(desc_parts[2])
+        except ValueError:
+            pass
+    return getPanTiltAsDMX(math.degrees(pan), math.degrees(tilt), pan_range, tilt_range, bytesPerAxis=2)
 
 def update_custom_properties(scene: bpy.types.Scene, depsgraph: bpy.types.Depsgraph):
     bad_obj_types = ['CAMERA','LAMP','ARMATURE']
