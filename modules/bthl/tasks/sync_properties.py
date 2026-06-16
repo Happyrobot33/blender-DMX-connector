@@ -1,5 +1,5 @@
 import bpy
-from bthl.tasks.task import Task
+from bthl.tasks.task import Task, HandlerType
 
 # Track the last state of the active object's properties for change detection
 _last_active_object_state = {}
@@ -39,11 +39,12 @@ def _copy_properties_to_object(src_obj: bpy.types.Object, dest_obj: bpy.types.Ob
 def _sync_active_object_properties_to_selected():
     """If sync is enabled, copy changed properties from active object to all selected objects."""
     try:
+        from bthl.operator.customproperties_modal import CustomPropertiesToggleModal
         context = bpy.context
         scene = context.scene
         
         # Check if syncing is enabled
-        sync_enabled = getattr(scene, "sync_properties_to_selected", False)
+        sync_enabled = CustomPropertiesToggleModal.get_sync_to_selected(context)
         if not sync_enabled:
             _last_active_object_state.clear()
             return
@@ -83,7 +84,7 @@ def sync_properties_handler(scene: bpy.types.Scene, depsgraph: bpy.types.Depsgra
 
 class SyncPropertiesTask(Task):
     functions = {
-        "depsgraph_update_post": sync_properties_handler,
-        "frame_change_post": sync_properties_handler,
-        "load_post": sync_properties_handler
+        HandlerType.DEPSGRAPH_UPDATE_POST: sync_properties_handler,
+        HandlerType.FRAME_CHANGE_POST: sync_properties_handler,
+        HandlerType.LOAD_POST: sync_properties_handler
     }

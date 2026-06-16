@@ -18,6 +18,20 @@ class GlobalControlPanel(Panel):
             return
         scene = context.scene
 
+        # Global Settings
+        global_box = layout.box()
+        global_box.label(text="Global Settings")
+        global_box.prop(scene, "debug_enabled", text="Debug Mode")
+        
+        # Custom Properties Settings
+        custom_props_box = layout.box()
+        custom_props_box.label(text="Custom Properties")
+        custom_props_box.prop(scene, "serialize_invisible", text="Serialize Invisible Objects")
+        custom_props_box.prop(scene, "sync_properties_to_selected", text="Sync Active to Selected")
+        if scene.sync_properties_to_selected:
+            sync_row = custom_props_box.row()
+            sync_row.label(text="Property changes will sync to other selected objects", icon='INFO')
+
         # UDP Client controls
         box = layout.box()
         box.label(text="UDP Client Settings")
@@ -45,15 +59,6 @@ class GlobalControlPanel(Panel):
             if scene.udp_client_active:
                 status_row = auto_send_box.row()
                 status_row.label(text="Auto-sending active", icon='PLAY')
-        
-        # Sync to selected controls
-        sync_box = layout.box()
-        sync_box.label(text="Object Property Sync")
-        sync_box.prop(scene, "sync_properties_to_selected", text="Sync Active to Selected")
-        if scene.sync_properties_to_selected:
-            sync_row = sync_box.row()
-            sync_row.label(text="Property changes will sync to other selected objects", icon='INFO')
-
         
         # MIDI Timecode controls
         timecode_box = layout.box()

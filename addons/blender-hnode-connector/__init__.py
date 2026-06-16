@@ -7,9 +7,11 @@ bl_info = {
 import bpy
 import inspect
 import sys
-from bthl.tasks.task import Task
+from bthl.tasks.task import Task, HandlerType
 from bthl.panel.global_control import GlobalControlPanel
 from bthl.operator.sender_modal import UDPClientToggleModal
+from bthl.operator.global_settings_modal import GlobalSettingsToggleModal
+from bthl.operator.customproperties_modal import CustomPropertiesToggleModal
 from bthl.operator.receiver_modal import MIDITimecodeOperator, MIDITimecodeToggleModal
 from bthl.operator.copy_property import OBJECT_OT_copy_custom_property_to_selected
 from bthl.operator.setup_dmx_properties import OBJECT_OT_add_base_dmx_custom_properties
@@ -23,6 +25,8 @@ from bthl.tasks.sender import auto_send
 classes = {
     GlobalControlPanel,
     UDPClientToggleModal,
+    GlobalSettingsToggleModal,
+    CustomPropertiesToggleModal,
     MIDITimecodeOperator,
     MIDITimecodeToggleModal,
     OBJECT_OT_copy_custom_property_to_selected,
@@ -45,9 +49,9 @@ def fixorder(scene: bpy.types.Scene, depsgraph: bpy.types.Depsgraph):
 
 class FixOrderTask(Task):
     functions = {
-        "depsgraph_update_pre": fixorder,
-        "frame_change_pre": fixorder,
-        "load_pre": fixorder
+        HandlerType.DEPSGRAPH_UPDATE_PRE: fixorder,
+        HandlerType.FRAME_CHANGE_PRE: fixorder,
+        HandlerType.LOAD_PRE: fixorder
     }
 
 #This is maintained as an array to keep order
@@ -64,11 +68,11 @@ def register():
     for task in tasks:
         task.register(task)
     
-    # Register MIDI timecode properties
+    # Register properties for modals that have them
     MIDITimecodeToggleModal.register()
-    
-    # Register UDP client properties
     UDPClientToggleModal.register()
+    GlobalSettingsToggleModal.register()
+    CustomPropertiesToggleModal.register()
     
     bpy.app.timers.register(receive, persistent=True)
     bpy.app.timers.register(auto_send, persistent=True)
@@ -79,11 +83,11 @@ def unregister():
     for task in tasks:
         task.unregister(task)
     
-    # Unregister MIDI timecode properties
+    # Unregister properties for modals that have them
     MIDITimecodeToggleModal.unregister()
-    
-    # Unregister UDP client properties and cleanup timer
     UDPClientToggleModal.unregister()
+    GlobalSettingsToggleModal.unregister()
+    CustomPropertiesToggleModal.unregister()
     
     bpy.app.timers.unregister(receive)
     bpy.app.timers.unregister(auto_send)
