@@ -13,6 +13,7 @@ from bthl.operator.sender_modal import UDPClientToggleModal
 from bthl.operator.global_settings_modal import GlobalSettingsToggleModal
 from bthl.operator.customproperties_modal import CustomPropertiesToggleModal
 from bthl.operator.receiver_modal import MIDITimecodeOperator, MIDITimecodeToggleModal
+from bthl.operator.gdtf_modal import GDTFShareToggleModal, GDTFPasswordInputModal, GDTFSearchModal, GDTFDownloadResultModal, GDTFRefreshModal
 from bthl.operator.copy_property import OBJECT_OT_copy_custom_property_to_selected
 from bthl.operator.setup_dmx_properties import OBJECT_OT_add_base_dmx_custom_properties
 from bthl.operator.duplicate_property import OBJECT_OT_duplicate_custom_property
@@ -29,6 +30,11 @@ classes = {
     CustomPropertiesToggleModal,
     MIDITimecodeOperator,
     MIDITimecodeToggleModal,
+    GDTFShareToggleModal,
+    GDTFPasswordInputModal,
+    GDTFSearchModal,
+    GDTFDownloadResultModal,
+    GDTFRefreshModal,
     OBJECT_OT_copy_custom_property_to_selected,
     OBJECT_OT_add_base_dmx_custom_properties,
     OBJECT_OT_duplicate_custom_property,
@@ -73,6 +79,7 @@ def register():
     UDPClientToggleModal.register()
     GlobalSettingsToggleModal.register()
     CustomPropertiesToggleModal.register()
+    GDTFShareToggleModal.register()
     
     bpy.app.timers.register(receive, persistent=True)
     bpy.app.timers.register(auto_send, persistent=True)
@@ -88,6 +95,7 @@ def unregister():
     UDPClientToggleModal.unregister()
     GlobalSettingsToggleModal.unregister()
     CustomPropertiesToggleModal.unregister()
+    GDTFShareToggleModal.unregister()
     
     bpy.app.timers.unregister(receive)
     bpy.app.timers.unregister(auto_send)

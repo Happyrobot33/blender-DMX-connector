@@ -1,6 +1,7 @@
 from bpy.types import Panel, Context
 import bthl.operator.sender_modal as sender_modal
 import bthl.operator.receiver_modal as receiver_modal
+import bthl.operator.gdtf_modal as gdtf_modal
 from bthl.tasks.receiver import get_last_timecode_frame
 
 class GlobalControlPanel(Panel):
@@ -90,3 +91,94 @@ class GlobalControlPanel(Panel):
                 # Sync to last received timecode button
                 op_sync = control_row.operator(receiver_modal.MIDITimecodeOperator.bl_idname, text="Sync to Last Timecode", icon='TIME')
                 op_sync.action = "sync_to_last_timecode"
+        
+        # GDTF Share controls
+        gdtf_box = layout.box()
+        gdtf_box.label(text="GDTF Share Integration")
+        gdtf_box.label(text="Access lighting fixtures from GDTF Share", icon='INFO')
+        
+        if not scene.gdtf_logged_in:
+            # Login section
+            login_row = gdtf_box.row()
+            login_op = login_row.operator(
+                gdtf_modal.GDTFPasswordInputModal.bl_idname,
+                text="Login to GDTF Share"
+            )
+            
+            # Display any login errors
+            if scene.gdtf_last_error:
+                error_row = gdtf_box.row()
+                error_row.label(text=scene.gdtf_last_error, icon='ERROR')
+        else:
+            # Logged in section
+            status_row = gdtf_box.row()
+            status_row.label(text=f"Logged in | {scene.gdtf_fixture_count} fixtures available", icon='CHECKMARK')
+            
+            # DMX Universe and Channel configuration
+            config_box = gdtf_box.box()
+            config_box.label(text="Fixture Settings")
+            config_row = config_box.row(align=True)
+            config_row.prop(scene, "gdtf_fixture_universe", text="Universe")
+            config_row.prop(scene, "gdtf_fixture_channel", text="Channel")
+            
+            # Fixture Search Section
+            search_box = gdtf_box.box()
+            search_box.label(text="Search & Browse")
+            
+            search_op = search_box.operator(gdtf_modal.GDTFSearchModal.bl_idname, text="Search Fixtures", icon='ZOOM_ALL')
+            
+            # Display search results if any
+            if scene.gdtf_search_results:
+                results_box = search_box.box()
+                results_box.label(text=f"Results ({len(scene.gdtf_search_results)})")
+                
+                # List results with selection
+                for idx, result in enumerate(scene.gdtf_search_results):
+                    result_row = results_box.row()
+                    
+                    # Selection indicator
+                    if idx == scene.gdtf_search_result_index:
+                        result_row.label(text="●", icon='RADIOBUT_ON')
+                    else:
+                        result_row.label(text="○", icon='RADIOBUT_OFF')
+                    
+                    # Fixture info
+                    info_text = f"{result.fixture} ({result.manufacturer})"
+                    result_row.label(text=info_text)
+                    
+                    # Click to select
+                    select_op = result_row.operator("wm.context_set_int", text="", icon='RADIOBUT_OFF')
+                    select_op.data_path = "scene.gdtf_search_result_index"
+                    select_op.value = idx
+                
+                # Add to scene button for selected result
+                if scene.gdtf_search_results:
+                    selected_result = scene.gdtf_search_results[min(scene.gdtf_search_result_index, len(scene.gdtf_search_results) - 1)]
+                    action_row = search_box.row()
+                    action_row.label(text=f"Selected: U{selected_result.universe}_C{selected_result.channel} - {selected_result.fixture}")
+                    add_btn = action_row.operator(
+                        gdtf_modal.GDTFDownloadResultModal.bl_idname,
+                        text="Add to Scene",
+                        icon='ADD'
+                    )
+            
+            # Buttons
+            button_row = gdtf_box.row(align=True)
+            list_op = button_row.operator(
+                "wm.url_open",
+                text="Browse Online",
+                icon='WINDOW'
+            )
+            list_op.url = "https://gdtf-share.com/"
+            
+            logout_op = button_row.operator(
+                gdtf_modal.GDTFShareToggleModal.bl_idname,
+                text="Logout",
+                icon='PANEL_CLOSE'
+            )
+            logout_op.action = "logout"
+            
+            # Display status messages
+            if scene.gdtf_last_error:
+                status_box = gdtf_box.box()
+                status_box.label(text=scene.gdtf_last_error, icon='INFO')
