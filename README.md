@@ -45,6 +45,15 @@ After adding base DMX properties, you can add custom properties to control speci
       - By default, booleans will serialize as 0 when off or 255 when on. This can be configured using the description
         - **Bitmask**: If the description contains a number, it will be treated as a bitmask for the channel. For example, if the description is `0 3`, it will set or clear bit 3 of channel 0 based on the boolean value
         - **Custom Values**: If the description contains two numbers, it will use those as the values for off and on states. For example, if the description is `0 100 200`, it will set channel 0 to 100 when off and 200 when on
+    - **Custom Scripting**: For advanced uses, you can create a script that gets called when the property is serialized.
+      - To get started, set the property type to data block, and set the id type to text. Then create a new text block in the text editor and write your python script. The script will be called with the following locals when serialized:
+        - `finalChannel`: The final channel that the property is being serialized to. This is the base channel + any offsets defined in the description
+        - `object`: The object that the property is being serialized from
+        - `object_properties`: The object's custom properties dictionary
+        - `current_property`: The current property being serialized
+      - There is a helpful set of python functions available in the `bthl.util.dmx` module to help with DMX serialization. For example, `getColorAsDMX`, `getTupleAsDMX`, and `getPanTiltAsDMX` can be used to convert common data types to DMX values
+      - For setting channels, use the `set_channel_value(channel, value)` function from `bthl.api.dmxdata`.
+      - There is also additional conversion functions available in the `bthl.util.general` module, such as `scale_number` to scale a number from one range to another
 
 ### 3. Configure UDP Client Settings
 
