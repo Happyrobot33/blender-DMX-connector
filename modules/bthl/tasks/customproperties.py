@@ -1,7 +1,7 @@
 import idprop
 import bpy
 from bthl.tasks.task import Task, HandlerType
-from bthl.api.dmxdata import set_channel_value
+from bthl.api.dmxdata import get_channel_value, set_channel_value
 from bthl.util.dmx import getColorAsDMX, getTupleAsDMX, getPanTiltAsDMX
 from bthl.util.general import scale_number
 import mathutils
@@ -63,21 +63,67 @@ def handleobjectproperties(object: bpy.types.Object):
                     elif typ == float:
                         #read the second part of the description and if it says 16bit, we map to 16 bit instead
                         desc_parts = properties[p]["description"].split(" ")
-                        is_16bit = len(desc_parts) > 1 and desc_parts[1].lower() == "16bit"
-                        #remapped = int((value / 100) * 255)
+                        #New method, grab the second channel we should write to
+                        second_channel : int = finalChannel + 1
+                        is_16bit = False
+                        if len(desc_parts) > 1:
+                            try:
+                                if desc_parts[1].lower() == "16bit":
+                                    #Old method, should be deprecated eventually. Maybe with an auto migration framework idk
+                                    second_channel = finalChannel + 1
+                                else:
+                                    #New method, allows defining the fine channel somewhere else
+                                    second_channel = globalChannel + int(desc_parts[1])
+                                is_16bit = True
+                            except ValueError:
+                                is_16bit = False
+
                         #remap from the properties min and max if they exist
                         min_val = props.get("min", 0.0)
                         max_val = props.get("max", 1.0)
                         if is_16bit:
                             remapped = int(scale_number(value, 0, 65535, min_val, max_val))
                             set_channel_value(finalChannel, (remapped >> 8) & 0xFF)
-                            set_channel_value(finalChannel + 1, remapped & 0xFF)
+                            set_channel_value(second_channel, remapped & 0xFF)
                         else:
                             remapped = int(scale_number(value, 0, 255, min_val, max_val))
                             set_channel_value(finalChannel, remapped)
                     elif typ == bool:
-                        #TODO: Allow defining this via description standard
-                        set_channel_value(finalChannel, 255 if value else 0)
+                        #first we need to check if this is composite or if this is a single channel boolean
+                        #if its a single channel, we use the next two values to determine the off and on values
+                        #if its composite, we use the next value for the bitmask, IE bit 0 is b0
+                        desc_parts = properties[p]["description"].split(" ")
+                        if len(desc_parts) == 1:
+                            #do nothing, this is the assumed mode
+                            set_channel_value(finalChannel, 255 if value else 0)
+                        elif len(desc_parts) == 2:
+                            #composite mode
+                            #get the bitmask from the second value
+                            try:
+                                bitindex = int(desc_parts[1])
+                                bitmask = 1 << bitindex
+                                #read the current value of the channel
+                                current_value: int | None = get_channel_value(finalChannel)
+                                if current_value is None:
+                                    current_value = 0
+                                #set or clear the bit based on the boolean value
+                                if value:
+                                    new_value = current_value | bitmask
+                                else:
+                                    new_value = current_value & ~bitmask
+                                set_channel_value(finalChannel, new_value)
+                            except ValueError:
+                                print("Invalid bitmask for boolean property:", properties[p]["description"])
+                        elif len(desc_parts) == 3:
+                            #single channel mode, read the next two values as off and on values
+                            try:
+                                off_value = int(desc_parts[1])
+                                on_value = int(desc_parts[2])
+                                set_channel_value(finalChannel, on_value if value else off_value)
+                            except ValueError:
+                                print("Invalid off/on values for boolean property:", properties[p]["description"])
+                        else:
+                            print("Invalid description for boolean property:", properties[p]["description"])
                     elif typ == idprop.types.IDPropertyArray:
                         #print(value.typecode)
                         dmx = getTupleAsDMX(value)
