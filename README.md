@@ -147,3 +147,87 @@ combined.append(0) #FX Selector
 for i in range(14):
     set_channel_value(i + finalChannel, combined[i])
 ```
+
+An example script for skybrush drones
+```python
+from bthl.util.dmx import *
+import bpy
+from bthl.util.dmx import *
+from bthl.api.dmxdata import set_channel_value
+from sbstudio.plugin.constants import Collections
+from sbstudio.plugin.colors import get_color_of_drone
+from sbstudio.plugin.model.storyboard import get_storyboard
+from sbstudio.plugin.model.formation import get_world_coordinates_of_markers_from_formation
+from sbstudio.plugin.tasks.light_effects import update_light_effects
+
+#get all the drones
+drones = Collections.find_drones(create=False).objects
+
+#helper to preview the currently selected formation
+use_fake_positions = False
+delete_constraints = False
+
+if use_fake_positions:
+    storyboard = get_storyboard()
+    #print(storyboard.active_entry_index)
+    
+    #get the currently selected entry
+    entry = storyboard.active_entry
+    #print(entry.purpose)
+    
+    #get the ACTUAL formation
+    formation = entry.formation
+    #print(formation)
+    
+    coords = get_world_coordinates_of_markers_from_formation(formation)
+    #print(coords)
+    
+    #now that we have coords, apply them to the drones in order. We dont care about indices
+    for drone, pos in zip(drones, coords):
+        #print(drone)
+        #print(pos)
+        tup = (pos[0], pos[1], pos[2])
+        #print(tup)
+        #print(drone.location)
+        #modify all constraints to 0
+        if drone.constraints:
+            for constraint in drone.constraints:
+                drone.constraints.remove(constraint)
+                #constraint.influence = 0.0
+        drone.location = tup
+        #print(drone.location)
+    
+    #This TECHNICALLY should be here but I cant because it creates a infinite loop
+    #depsgraph = bpy.context.evaluated_depsgraph_get()
+    #depsgraph.update()
+    
+    #update_light_effects(bpy.context.scene, None)
+
+if True:
+    #do for each drone, keeping a index to offset channels
+    for drone_index, drone in enumerate(drones):
+        base_channel = drone_index * 9  #each drone gets 6 channels
+        base_channel = base_channel + finalChannel
+        
+        #used because matrix_world requires deps update and thatll cause a infinite loop in this case
+        if use_fake_positions:
+            loc = drone.location.copy()
+        else:
+            loc = drone.matrix_world.to_translation()
+            
+        #if drone_index < 2:
+        #    print(loc)
+        #flip y
+        loc.y *= -1
+        loc.x, loc.y = loc.y, loc.x
+        combined = getPositionAsDMX(loc, range=800, bytesPerAxis=2)
+        #handle color
+        #color = get_color_of_drone(drone)
+        color = drone.color
+        combined += getColorAsDMX(color)
+        #write them starting at channel 0
+        for i in range(9):
+            #set_channel_value(base_channel + i, 255)
+            set_channel_value(base_channel + i, combined[i])
+            #data_dict[i + base_channel] = combined[i]
+```
