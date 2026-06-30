@@ -108,3 +108,42 @@ Sync Blender's timeline with external timecode sources (requires [HNode](https:/
 ### Quick Property Duplication
 - Select an object with DMX properties
 - Right-click and select **Duplicate DMX Property** to quickly copy a single property on the same object
+
+
+## Example custom scripts
+
+An example script for the positions of the trusses in stageflight
+```python
+import bpy
+from bthl.api.dmxdata import set_channel_value
+from bthl.util.dmx import *
+from bthl.util.general import *
+import mathutils
+import math
+import itertools
+import time
+from bpy_extras.io_utils import axis_conversion
+import idprop
+
+loc = object.matrix_world.to_translation()
+
+loc.y, loc.x = -loc.x, -loc.y
+loc.y *= -1
+loc.y, loc.z = loc.z, loc.y
+
+maxrange = 50
+
+combined = getPositionAsDMX(loc, maxrange, bytesPerAxis=2)
+mat = object.matrix_world.copy()
+oq = mat.to_quaternion()
+unity_quat = convert_blender_quat_to_unity_quat(oq)
+unity_eul = convert_unity_quat_to_unity_euler(unity_quat)
+
+combined += getRotationAsDMX(unity_eul, range=math.radians(540), bytesPerAxis=2)
+#hardcoded additional info
+combined.append(0) #fixture offset
+combined.append(0) #FX Selector
+#write them starting at channel 0
+for i in range(14):
+    set_channel_value(i + finalChannel, combined[i])
+```
