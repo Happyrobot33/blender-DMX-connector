@@ -1,6 +1,7 @@
 from bpy.types import Panel, Context
 import bthl.operator.sender_modal as sender_modal
 import bthl.operator.receiver_modal as receiver_modal
+import bthl.operator.frame_snapshot_modal as frame_snapshot_modal
 from bthl.tasks.receiver import get_last_timecode_frame
 
 class GlobalControlPanel(Panel):
@@ -90,3 +91,17 @@ class GlobalControlPanel(Panel):
                 # Sync to last received timecode button
                 op_sync = control_row.operator(receiver_modal.MIDITimecodeOperator.bl_idname, text="Sync to Last Timecode", icon='TIME')
                 op_sync.action = "sync_to_last_timecode"
+        
+        # Frame Snapshot Export controls
+        frame_snapshot_box = layout.box()
+        frame_snapshot_box.label(text="Frame Snapshot Export")
+        frame_snapshot_box.label(text="Exports DMX frames during rendering", icon='INFO')
+        
+        # Show port control and toggle button
+        frame_snapshot_box.prop(scene, "frame_snapshot_export_port", text="UDP Port")
+        frame_snapshot_box.prop(scene, "frame_snapshot_write_timeout", text="Write Timeout (seconds)")
+        frame_snapshot_box.operator(frame_snapshot_modal.FrameSnapshotToggleModal.bl_idname, text=frame_snapshot_modal.FrameSnapshotToggleModal.dynamic_text(context))
+        
+        # Show info about frame storage location
+        frame_snapshot_box.label(text="Frames save to [blend_file]_frames/", icon='FOLDER_REDIRECT')
+

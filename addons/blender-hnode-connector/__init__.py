@@ -13,20 +13,24 @@ from bthl.operator.sender_modal import UDPClientToggleModal
 from bthl.operator.global_settings_modal import GlobalSettingsToggleModal
 from bthl.operator.customproperties_modal import CustomPropertiesToggleModal
 from bthl.operator.receiver_modal import MIDITimecodeOperator, MIDITimecodeToggleModal
+from bthl.operator.frame_snapshot_modal import FrameSnapshotToggleModal
 from bthl.operator.copy_property import OBJECT_OT_copy_custom_property_to_selected
 from bthl.operator.setup_dmx_properties import OBJECT_OT_add_base_dmx_custom_properties
 from bthl.operator.duplicate_property import OBJECT_OT_duplicate_custom_property
 from bthl.tasks.sender import UDPClientTasks
 from bthl.tasks.customproperties import CustomPropertiesTask
 from bthl.tasks.sync_properties import SyncPropertiesTask
+from bthl.tasks.frame_snapshot_exporter import FrameSnapshotExporterTask
 from bthl.tasks.receiver import receive
 from bthl.tasks.sender import auto_send
+from bthl.tasks.frame_snapshot_exporter import send_frame_snapshot
 
 classes = {
     GlobalControlPanel,
     UDPClientToggleModal,
     GlobalSettingsToggleModal,
     CustomPropertiesToggleModal,
+    FrameSnapshotToggleModal,
     MIDITimecodeOperator,
     MIDITimecodeToggleModal,
     OBJECT_OT_copy_custom_property_to_selected,
@@ -60,6 +64,7 @@ tasks = [
     SyncPropertiesTask,
     CustomPropertiesTask,
     UDPClientTasks, #This MUST be last so everything above it is allowed to run
+    FrameSnapshotExporterTask,
 ]
 
 def register():
@@ -73,6 +78,7 @@ def register():
     UDPClientToggleModal.register()
     GlobalSettingsToggleModal.register()
     CustomPropertiesToggleModal.register()
+    FrameSnapshotToggleModal.register()
     
     bpy.app.timers.register(receive, persistent=True)
     bpy.app.timers.register(auto_send, persistent=True)
@@ -88,6 +94,7 @@ def unregister():
     UDPClientToggleModal.unregister()
     GlobalSettingsToggleModal.unregister()
     CustomPropertiesToggleModal.unregister()
+    FrameSnapshotToggleModal.unregister()
     
     bpy.app.timers.unregister(receive)
     bpy.app.timers.unregister(auto_send)
