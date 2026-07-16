@@ -8,6 +8,26 @@ from bthl.tasks.customproperties import update_custom_properties
 from bthl.tasks.task import Task, HandlerType
 from bthl.api.dmxdata import dmx_buffer
 
+# Module-level socket
+_udp_socket = None
+
+def _get_socket():
+    """Get or create the UDP socket"""
+    global _udp_socket
+    if _udp_socket is None:
+        _udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    return _udp_socket
+
+def _close_socket():
+    """Close the UDP socket"""
+    global _udp_socket
+    if _udp_socket is not None:
+        try:
+            _udp_socket.close()
+        except Exception as e:
+            print(f"Error closing socket: {e}")
+        _udp_socket = None
+
 def auto_send() -> float:
     """Auto-send function that works like receiver.py"""
     #print("test")
@@ -33,16 +53,14 @@ def auto_send() -> float:
     return UDPClientToggleModal.get_auto_send_interval(bpy.context)
 
 def send_udp_packet(ip, port, message, id = 0):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
+        sock = _get_socket()
         sock.sendto(message, (ip, port))
         # Print if debug is enabled
         if GlobalSettingsToggleModal.get_debug_enabled(bpy.context):
             print(f"Sent message to {ip}:{port} (ID: {id})")
     except Exception as e:
         print(f"Error sending message: {e}")
-    finally:
-        sock.close()
 
 def send(scene, depsgraph):
     #print("Sending DMX data via UDP...")
