@@ -5,10 +5,12 @@ A Blender addon that enables real-time DMX lighting control through Art-Net prot
 ## Installation
 
 1. Download the addon folder containing this plugin
-2. In Blender, go to **Edit → Preferences → Add-ons**
-3. Click **Install** and select the addon folder
-4. Search for "DMX Connector" and enable it
-5. A new **DMX Connector** panel will appear in the 3D View sidebar (press `N` to toggle)
+2. Extract to somewhere on your machine
+3. Re-zip the folder inside named blender-DMX-connector-main. The files directly inside it should be multiple folders, not a single folder
+5. In Blender, go to **Edit → Preferences → Add-ons**
+6. Click **Install** and select the new zip
+7. Search for "DMX Connector" and enable it
+8. A new **DMX Connector** panel will appear in the 3D View sidebar (press `N` to toggle)
 
 **Requirements**: Blender 4.5 or later
 
