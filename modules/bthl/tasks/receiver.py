@@ -69,7 +69,9 @@ def receive() -> float:
         fps = scene.render.fps / scene.render.fps_base
         #convert the value to frames
         frame = frames
-        frame += int((compensatedMilliseconds / 1000) * fps)
+        #use round() instead of int(): fractional fps (e.g. 29.97) causes float error that lands just under
+        #whole-second boundaries, and int() truncates that down a frame instead of rounding to the correct one
+        frame += round((compensatedMilliseconds / 1000) * fps)
         
         # Apply timecode offset
         frame_offset = MIDITimecodeToggleModal.get_timecode_offset_frames(bpy.context)
