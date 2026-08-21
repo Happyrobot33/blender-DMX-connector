@@ -81,9 +81,7 @@ class MIDITimecodeToggleModal(Operator):
         bpy.types.Scene.timecode_offset_frames = IntProperty(
             name="Timecode Offset (Frames)",
             description="Offset timecode by this number of frames (positive for forward, negative for backward)",
-            default=0,
-            min=-9999,
-            max=9999
+            default=0
         )
 
     @staticmethod
