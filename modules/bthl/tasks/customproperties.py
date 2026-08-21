@@ -152,7 +152,7 @@ def handleobjectproperties(object: bpy.types.Object):
 
 def get_angle_to_target_as_pan_tilt_DMX(object: bpy.types.Object, target_obj: bpy.types.Object, current_property: dict):
     #get world space position lol
-    target_loc = target_obj.matrix_world.translation
+    target_loc = target_obj.matrix_world.copy().translation
     object_matrix = object.matrix_world.copy()
     #rotate it 90 degrees on an axis to make it correct
     object_matrix = object_matrix @ mathutils.Matrix.Rotation(math.radians(-90), 4, 'Y')
@@ -167,6 +167,7 @@ def get_angle_to_target_as_pan_tilt_DMX(object: bpy.types.Object, target_obj: bp
     #pan is rotation around z axis
     #rounding to truncate float imprecisions (observed as high as e-6)
     pan = math.atan2(round(direction.y, 3), round(direction.x, 3))
+    pan += math.radians(180) #adjustment required
     #tilt is rotation around x axis
     tilt = math.asin(round(direction.z, 3))
     #wrap both around 360

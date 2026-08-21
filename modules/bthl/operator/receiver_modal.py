@@ -37,7 +37,6 @@ class MIDITimecodeToggleModal(Operator):
     timecode_allow_timeline_move_prop_name = "timecode_allow_timeline_move"
     timecode_port_prop_name = "timecode_port"
     timecode_offset_frames_prop_name = "timecode_offset_frames"
-    timecode_latency_compensation_enabled_prop_name = "timecode_latency_compensation_enabled"
 
     @staticmethod
     def get_timecode_receive_enabled(context: Context):
@@ -54,10 +53,6 @@ class MIDITimecodeToggleModal(Operator):
     @staticmethod
     def get_timecode_offset_frames(context: Context):
         return getattr(context.scene, MIDITimecodeToggleModal.timecode_offset_frames_prop_name, 0)
-
-    @staticmethod
-    def get_timecode_latency_compensation_enabled(context: Context):
-        return getattr(context.scene, MIDITimecodeToggleModal.timecode_latency_compensation_enabled_prop_name, True)
 
     @staticmethod
     def register():
@@ -91,12 +86,6 @@ class MIDITimecodeToggleModal(Operator):
             max=9999
         )
 
-        bpy.types.Scene.timecode_latency_compensation_enabled = BoolProperty(
-            name="Latency Compensation",
-            description="Compensate for network latency when calculating the current timecode frame. Can be unstable",
-            default=False
-        )
-
     @staticmethod
     def unregister():
         """Unregister the operator"""
@@ -109,5 +98,3 @@ class MIDITimecodeToggleModal(Operator):
             del bpy.types.Scene.timecode_port
         if hasattr(bpy.types.Scene, MIDITimecodeToggleModal.timecode_offset_frames_prop_name):
             del bpy.types.Scene.timecode_offset_frames
-        if hasattr(bpy.types.Scene, MIDITimecodeToggleModal.timecode_latency_compensation_enabled_prop_name):
-            del bpy.types.Scene.timecode_latency_compensation_enabled

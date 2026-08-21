@@ -81,7 +81,6 @@ class GlobalControlPanel(Panel):
         # Show timeline controls only when timecode is enabled
         if scene.timecode_receive_enabled:
             timecode_box.prop(scene, "timecode_allow_timeline_move", text="Allow Free Timeline Movement")
-            timecode_box.prop(scene, "timecode_latency_compensation_enabled", text="Latency Compensation")
             timecode_box.prop(scene, "timecode_port", text="MIDI Timecode Port")
             timecode_box.prop(scene, "timecode_offset_frames", text="Timecode Offset (Frames)")
             

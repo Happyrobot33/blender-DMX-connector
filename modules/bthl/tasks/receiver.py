@@ -8,6 +8,7 @@ import time
 sock = None
 last_timecode_frame = None
 current_port = None
+last_frames = None
 last_milliseconds = None
 
 def receive() -> float:
@@ -45,25 +46,24 @@ def receive() -> float:
 
     try:
         data, addr = sock.recvfrom(receivebuffer_size)
-        print(f"Received message from {addr}: {data}")
+        # print(f"Received message from {addr}: {data}")
         #the data coming in is a signed long long in bytes, big endian
         milliseconds = int.from_bytes(data[0:4], byteorder='big', signed=True)
 
         #frames is a single byte
         frames = data[4]
+        # print(len(data))
+        
+        # Discard frames that jump to 0 without milliseconds changing
+        # Non correct fix, but should fix timecode seconds jumping theoretically
+        global last_frames, last_milliseconds
+        if last_frames != 0 and frames == 0 and last_milliseconds is not None and milliseconds == last_milliseconds:
+            print(f"Discarding spurious frames jump to 0: frames={frames}, milliseconds={milliseconds}")
+            last_frames = frames
+            last_milliseconds = milliseconds
+            return update_rate
 
-        #UTC time is the next C# ulong
-        utcSentTime = int.from_bytes(data[5:13], byteorder='big', signed=False)
-
-        #calculate the delta, and thats what we will use to adjust the frame, this allows for compensation of latency between sender and receiver
-        global last_milliseconds
-        if MIDITimecodeToggleModal.get_timecode_latency_compensation_enabled(bpy.context) and milliseconds != last_milliseconds:
-            currentUTCTime = int(time.time() * 1000)
-            latencyCompensation = currentUTCTime - utcSentTime
-            compensatedMilliseconds = milliseconds + latencyCompensation
-        else:
-            compensatedMilliseconds = milliseconds
-        last_milliseconds = milliseconds
+        last_frames = frames
         
         #get the scene
         fps = scene.render.fps / scene.render.fps_base
@@ -71,11 +71,14 @@ def receive() -> float:
         frame = frames
         #use round() instead of int(): fractional fps (e.g. 29.97) causes float error that lands just under
         #whole-second boundaries, and int() truncates that down a frame instead of rounding to the correct one
-        frame += round((compensatedMilliseconds / 1000) * fps)
+        frame += round((milliseconds / 1000) * fps)
         
         # Apply timecode offset
         frame_offset = MIDITimecodeToggleModal.get_timecode_offset_frames(bpy.context)
         frame += frame_offset
+        
+        # Track frame and millisecond values
+        last_milliseconds = milliseconds
         
         global last_timecode_frame
         #set the current frame of the scene
