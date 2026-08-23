@@ -1,12 +1,8 @@
 import socket
 import json
 import bpy
-import os
-import time
 from pathlib import Path
-from bthl.operator.frame_snapshot_modal import FrameSnapshotToggleModal
 from bthl.operator.global_settings_modal import GlobalSettingsToggleModal
-from bthl.tasks.task import Task, HandlerType
 
 
 def get_frame_export_directory() -> Path:
@@ -28,61 +24,46 @@ def get_frame_export_directory() -> Path:
     return export_dir
 
 
-def send_frame_snapshot(scene: bpy.types.Scene, depsgraph=None) -> float:
+def send_frame_snapshot_for_frame(context: "bpy.types.Context", frame_number: int) -> bool:
     """
-    Send a UDP packet with frame snapshot information when rendering.
-    
+    Send a UDP packet requesting a frame snapshot save for the current state of the
+    scene, then wait for the resulting file to be written.
+
     Args:
-        scene: The Blender scene
-        depsgraph: The dependency graph (optional)
-    
+        context: The Blender context
+        frame_number: The frame number the scene is currently set to
+
     Returns:
-        float: Interval for next call (required for timer functions)
+        bool: True if the file was written before the timeout, False otherwise
     """
+    # Local import to avoid a circular import with frame_snapshot_modal
+    from bthl.operator.frame_snapshot_modal import FrameSnapshotSettings
+
     try:
-        context = bpy.context
-        
-        # Check if frame snapshot export is enabled
-        if not FrameSnapshotToggleModal.get_export_enabled(context):
-            return 0.1
-        
-        # Get configuration
-        port = FrameSnapshotToggleModal.get_export_port(context)
-        frame_number = scene.frame_current
-        
-        # Get frame export directory
-        try:
-            export_dir = get_frame_export_directory()
-        except ValueError as e:
-            if GlobalSettingsToggleModal.get_debug_enabled(context):
-                print(f"Frame snapshot export disabled: {e}")
-            return 0.1
-        
-        # Create the frame file path
-        frame_file_path = export_dir / f"frame_{frame_number:06d}.png"
-        
-        # Create the packet
-        packet = {
-            "command": "save_frame",
-            "frame_number": frame_number,
-            "file_path": str(frame_file_path)
-        }
-        
-        # Send via UDP
-        json_message = json.dumps(packet)
-        send_udp_packet("localhost", port, json_message)
-        
-        # Wait for file to be created (with timeout)
-        timeout = FrameSnapshotToggleModal.get_frame_write_timeout(context)
-        wait_for_file(frame_file_path, timeout)
-        
+        export_dir = get_frame_export_directory()
+    except ValueError as e:
         if GlobalSettingsToggleModal.get_debug_enabled(context):
-            print(f"Frame snapshot packet sent for frame {frame_number} to port {port}")
-        
-    except Exception as e:
-        print(f"Error in frame snapshot export: {e}")
-    
-    return 0.1
+            print(f"Frame snapshot export disabled: {e}")
+        return False
+
+    port = FrameSnapshotSettings.get_export_port(context)
+    frame_file_path = export_dir / f"frame_{frame_number:06d}.png"
+
+    packet = {
+        "command": "save_frame",
+        "frame_number": frame_number,
+        "file_path": str(frame_file_path)
+    }
+
+    send_udp_packet("localhost", port, json.dumps(packet))
+
+    timeout = FrameSnapshotSettings.get_frame_write_timeout(context)
+    written = wait_for_file(frame_file_path, timeout)
+
+    if GlobalSettingsToggleModal.get_debug_enabled(context):
+        print(f"Frame snapshot packet sent for frame {frame_number} to port {port}")
+
+    return written
 
 
 def send_udp_packet(host: str, port: int, message: str):
@@ -103,7 +84,7 @@ def send_udp_packet(host: str, port: int, message: str):
         sock.close()
 
 
-def wait_for_file(file_path: Path, timeout: float = 5.0, poll_interval: float = 0.01):
+def wait_for_file(file_path: Path, timeout: float = 5.0, poll_interval: float = 0.01) -> bool:
     """
     Wait for a file to be created with a timeout.
     
@@ -111,20 +92,16 @@ def wait_for_file(file_path: Path, timeout: float = 5.0, poll_interval: float = 
         file_path: Path to the file to wait for
         timeout: Maximum time to wait in seconds
         poll_interval: How often to check if file exists in seconds
+
+    Returns:
+        bool: True if the file appeared before the timeout, False otherwise
     """
     import time
     start_time = time.time()
     
     while time.time() - start_time < timeout:
         if file_path.exists():
-            return  # File was created, exit early
+            return True
         time.sleep(poll_interval)
     
-    # Timeout reached - log warning but continue
-
-
-class FrameSnapshotExporterTask(Task):
-    """Task for exporting frame snapshots via UDP during rendering"""
-    functions = {
-        HandlerType.RENDER_WRITE: send_frame_snapshot,
-    }
+    return False

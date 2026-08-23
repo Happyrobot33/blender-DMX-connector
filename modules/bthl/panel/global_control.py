@@ -94,13 +94,37 @@ class GlobalControlPanel(Panel):
         # Frame Snapshot Export controls
         frame_snapshot_box = layout.box()
         frame_snapshot_box.label(text="Frame Snapshot Export")
-        frame_snapshot_box.label(text="Exports DMX frames during rendering", icon='INFO')
+        frame_snapshot_box.label(text="Steps through a frame range, exporting a snapshot per frame", icon='INFO')
         
-        # Show port control and toggle button
+        # Show port control and timing/range settings
         frame_snapshot_box.prop(scene, "frame_snapshot_export_port", text="UDP Port")
         frame_snapshot_box.prop(scene, "frame_snapshot_write_timeout", text="Write Timeout (seconds)")
-        frame_snapshot_box.operator(frame_snapshot_modal.FrameSnapshotToggleModal.bl_idname, text=frame_snapshot_modal.FrameSnapshotToggleModal.dynamic_text(context))
+        range_row = frame_snapshot_box.row(align=True)
+        range_row.prop(scene, "frame_snapshot_range_start", text="Start Frame")
+        range_row.prop(scene, "frame_snapshot_range_end", text="End Frame")
+        
+        if scene.frame_snapshot_running:
+            stats = frame_snapshot_modal.FrameSnapshotSettings.get_progress_stats(context)
+
+            status_row = frame_snapshot_box.row()
+            status_row.label(text=f"Exporting frame {scene.frame_snapshot_current_frame}...", icon='RENDER_ANIMATION')
+
+            progress_row = frame_snapshot_box.row()
+            progress_row.label(text=f"{stats['percentage']:.0f}% ({stats['remaining']} frames remaining)")
+
+            speed_row = frame_snapshot_box.row()
+            if stats['speed'] > 0:
+                eta = stats['eta_seconds']
+                eta_text = f"{frame_snapshot_modal.FrameSnapshotSettings.format_duration(eta)} remaining" if eta is not None else "estimating..."
+                speed_row.label(text=f"{stats['speed']:.2f} frames/sec, {eta_text}")
+            else:
+                speed_row.label(text="Estimating speed...")
+
+            frame_snapshot_box.operator(frame_snapshot_modal.FrameSnapshotCancelOperator.bl_idname, text="Cancel", icon='CANCEL')
+        else:
+            frame_snapshot_box.operator(frame_snapshot_modal.FrameSnapshotRangeModal.bl_idname, text="Start Frame Snapshot Export", icon='PLAY')
         
         # Show info about frame storage location
         frame_snapshot_box.label(text="Frames save to [blend_file]_frames/", icon='FOLDER_REDIRECT')
+
 
