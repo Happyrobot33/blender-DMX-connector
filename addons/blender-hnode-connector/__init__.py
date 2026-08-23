@@ -19,6 +19,7 @@ from bthl.operator.setup_dmx_properties import OBJECT_OT_add_base_dmx_custom_pro
 from bthl.operator.duplicate_property import OBJECT_OT_duplicate_custom_property
 from bthl.tasks.sender import UDPClientTasks
 from bthl.tasks.customproperties import CustomPropertiesTask
+from bthl.tasks.frame_snapshot_exporter import FrameSnapshotTask
 from bthl.tasks.sync_properties import SyncPropertiesTask
 from bthl.tasks.receiver import receive
 from bthl.tasks.sender import auto_send
@@ -63,6 +64,7 @@ tasks = [
     SyncPropertiesTask,
     CustomPropertiesTask,
     UDPClientTasks, #This MUST be last so everything above it is allowed to run
+    FrameSnapshotTask,
 ]
 
 def register():

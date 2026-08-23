@@ -3,6 +3,54 @@ import json
 import bpy
 from pathlib import Path
 from bthl.operator.global_settings_modal import GlobalSettingsToggleModal
+from bthl.tasks.task import Task, HandlerType
+
+FRAME_SNAPSHOT_RESPONSE_PORT = 9124
+_response_socket = None
+
+
+def _get_response_socket():
+    global _response_socket
+    if _response_socket is None:
+        _response_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        _response_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        _response_socket.bind(("localhost", FRAME_SNAPSHOT_RESPONSE_PORT))
+    return _response_socket
+
+
+def _wait_for_snapshot_response(timeout: float) -> bool:
+    response_socket = _get_response_socket()
+    response_socket.settimeout(timeout)
+
+    try:
+        response_socket.recvfrom(65535)
+        return True
+    except socket.timeout:
+        return False
+
+
+def frame_snapshot_handler(scene: "bpy.types.Scene", depsgraph: "bpy.types.Depsgraph"):
+    from bthl.operator.frame_snapshot_modal import FrameSnapshotSettings
+
+    context = bpy.context
+    if not FrameSnapshotSettings.get_running(context):
+        return
+
+    frame_number = FrameSnapshotSettings.get_current_frame(context)
+    if frame_number != scene.frame_current:
+        return
+
+    success = send_frame_snapshot_for_frame(context, frame_number)
+    if not success and GlobalSettingsToggleModal.get_debug_enabled(context):
+        print(f"Frame snapshot export: timed out waiting for frame {frame_number} to be written")
+
+    scene.frame_snapshot_frames_done += 1
+
+
+class FrameSnapshotTask(Task):
+    functions = {
+        HandlerType.FRAME_CHANGE_POST: frame_snapshot_handler
+    }
 
 
 def get_frame_export_directory() -> Path:
@@ -52,18 +100,32 @@ def send_frame_snapshot_for_frame(context: "bpy.types.Context", frame_number: in
     packet = {
         "command": "save_frame",
         "frame_number": frame_number,
-        "file_path": str(frame_file_path)
+        "file_path": str(frame_file_path),
+        "response_port": FRAME_SNAPSHOT_RESPONSE_PORT
     }
 
-    send_udp_packet("localhost", port, json.dumps(packet))
+    response_socket = _get_response_socket()
+    response_socket.setblocking(False)
+    try:
+        while True:
+            response_socket.recvfrom(65535)
+    except BlockingIOError:
+        pass
+
+    response_socket.sendto(json.dumps(packet).encode("utf-8"), ("localhost", port))
 
     timeout = FrameSnapshotSettings.get_frame_write_timeout(context)
-    written = wait_for_file(frame_file_path, timeout)
+    if not _wait_for_snapshot_response(timeout):
+        if GlobalSettingsToggleModal.get_debug_enabled(context):
+            print(f"Frame snapshot export: no response received for frame {frame_number}")
+        return False
+
+    # written = wait_for_file(frame_file_path, timeout)
 
     if GlobalSettingsToggleModal.get_debug_enabled(context):
         print(f"Frame snapshot packet sent for frame {frame_number} to port {port}")
 
-    return written
+    return True
 
 
 def send_udp_packet(host: str, port: int, message: str):

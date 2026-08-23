@@ -186,10 +186,6 @@ class FrameSnapshotRangeModal(Operator):
     _original_frame = None
 
     def invoke(self, context: Context, event):
-        # Local import to avoid a circular import with frame_snapshot_exporter
-        from bthl.tasks.frame_snapshot_exporter import send_frame_snapshot_for_frame
-        self._send_frame_snapshot_for_frame = send_frame_snapshot_for_frame
-
         scene = context.scene
 
         if FrameSnapshotSettings.get_running(context):
@@ -227,14 +223,8 @@ class FrameSnapshotRangeModal(Operator):
 
             scene.frame_snapshot_current_frame = frame
             # Move the timeline; this triggers depsgraph/frame handlers which
-            # calculate and send the DMX data for the frame synchronously
+            # calculate DMX data and send the frame snapshot synchronously
             scene.frame_set(frame)
-
-            success = self._send_frame_snapshot_for_frame(context, frame)
-            if not success and GlobalSettingsToggleModal.get_debug_enabled(context):
-                print(f"Frame snapshot export: timed out waiting for frame {frame} to be written")
-
-            scene.frame_snapshot_frames_done += 1
 
             # Progress properties changed - force the sidebar panel to redraw
             for area in context.screen.areas:
@@ -253,10 +243,11 @@ class FrameSnapshotRangeModal(Operator):
             wm.event_timer_remove(self._timer)
             self._timer = None
 
+        scene.frame_snapshot_running = False
+
         if self._original_frame is not None:
             scene.frame_set(self._original_frame)
 
-        scene.frame_snapshot_running = False
         scene.frame_snapshot_cancel_requested = False
         scene.frame_snapshot_current_frame = 0
         scene.frame_snapshot_frames_done = 0
