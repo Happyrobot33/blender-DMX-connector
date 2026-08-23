@@ -6,6 +6,7 @@ from bthl.operator.global_settings_modal import GlobalSettingsToggleModal
 from bthl.tasks.task import Task, HandlerType
 
 FRAME_SNAPSHOT_RESPONSE_PORT = 9124
+MAX_CONSECUTIVE_FAILURES = 4
 _response_socket = None
 
 
@@ -20,13 +21,23 @@ def _get_response_socket():
 
 def _wait_for_snapshot_response(timeout: float) -> bool:
     response_socket = _get_response_socket()
-    response_socket.settimeout(timeout)
+    import time
 
-    try:
-        response_socket.recvfrom(65535)
-        return True
-    except socket.timeout:
-        return False
+    deadline = time.monotonic() + timeout
+
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return False
+
+        response_socket.settimeout(remaining)
+        try:
+            response_socket.recvfrom(65535)
+            return True
+        except socket.timeout:
+            return False
+        except ConnectionResetError:
+            continue
 
 
 def frame_snapshot_handler(scene: "bpy.types.Scene", depsgraph: "bpy.types.Depsgraph"):
@@ -41,8 +52,14 @@ def frame_snapshot_handler(scene: "bpy.types.Scene", depsgraph: "bpy.types.Depsg
         return
 
     success = send_frame_snapshot_for_frame(context, frame_number)
-    if not success and GlobalSettingsToggleModal.get_debug_enabled(context):
-        print(f"Frame snapshot export: timed out waiting for frame {frame_number} to be written")
+    if success:
+        scene.frame_snapshot_consecutive_failures = 0
+    else:
+        scene.frame_snapshot_consecutive_failures += 1
+        if GlobalSettingsToggleModal.get_debug_enabled(context):
+            print(f"Frame snapshot export failed for frame {frame_number}")
+        if scene.frame_snapshot_consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+            scene.frame_snapshot_cancel_requested = True
 
     scene.frame_snapshot_frames_done += 1
 
@@ -109,7 +126,7 @@ def send_frame_snapshot_for_frame(context: "bpy.types.Context", frame_number: in
     try:
         while True:
             response_socket.recvfrom(65535)
-    except BlockingIOError:
+    except (BlockingIOError, ConnectionResetError):
         pass
 
     response_socket.sendto(json.dumps(packet).encode("utf-8"), ("localhost", port))

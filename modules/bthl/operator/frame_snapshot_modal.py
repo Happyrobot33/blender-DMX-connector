@@ -16,6 +16,7 @@ class FrameSnapshotSettings:
     current_frame_prop_name = "frame_snapshot_current_frame"
     cancel_requested_prop_name = "frame_snapshot_cancel_requested"
     frames_done_prop_name = "frame_snapshot_frames_done"
+    consecutive_failures_prop_name = "frame_snapshot_consecutive_failures"
     start_time_prop_name = "frame_snapshot_start_time"
 
     @staticmethod
@@ -149,6 +150,14 @@ class FrameSnapshotSettings:
             options={'HIDDEN', 'SKIP_SAVE'}
         )
 
+        bpy.types.Scene.frame_snapshot_consecutive_failures = IntProperty(
+            name="Frame Snapshot Consecutive Failures",
+            description="Number of consecutive frame snapshot failures",
+            default=0,
+            min=0,
+            options={'HIDDEN', 'SKIP_SAVE'}
+        )
+
         bpy.types.Scene.frame_snapshot_start_time = FloatProperty(
             name="Frame Snapshot Start Time",
             description="Timestamp the current export started at, used to estimate speed",
@@ -168,6 +177,7 @@ class FrameSnapshotSettings:
             FrameSnapshotSettings.current_frame_prop_name,
             FrameSnapshotSettings.cancel_requested_prop_name,
             FrameSnapshotSettings.frames_done_prop_name,
+            FrameSnapshotSettings.consecutive_failures_prop_name,
             FrameSnapshotSettings.start_time_prop_name,
         ):
             if hasattr(bpy.types.Scene, prop_name):
@@ -203,6 +213,7 @@ class FrameSnapshotRangeModal(Operator):
         scene.frame_snapshot_running = True
         scene.frame_snapshot_cancel_requested = False
         scene.frame_snapshot_frames_done = 0
+        scene.frame_snapshot_consecutive_failures = 0
         scene.frame_snapshot_start_time = time.time()
 
         wm = context.window_manager
@@ -251,6 +262,7 @@ class FrameSnapshotRangeModal(Operator):
         scene.frame_snapshot_cancel_requested = False
         scene.frame_snapshot_current_frame = 0
         scene.frame_snapshot_frames_done = 0
+        scene.frame_snapshot_consecutive_failures = 0
         scene.frame_snapshot_start_time = 0.0
 
         if cancelled:
