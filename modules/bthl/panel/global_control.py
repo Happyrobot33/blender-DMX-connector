@@ -33,6 +33,11 @@ class GlobalControlPanel(Panel):
             sync_row = custom_props_box.row()
             sync_row.label(text="Property changes will sync to other selected objects", icon='INFO')
 
+        # Constraint Animation Settings
+        constraint_anim_box = layout.box()
+        constraint_anim_box.label(text="Constraint Animation")
+        constraint_anim_box.prop(scene, "constraint_animate_gap", text="Animate In/Out Gap (Frames)")
+
         # UDP Client controls
         box = layout.box()
         box.label(text="UDP Client Settings")

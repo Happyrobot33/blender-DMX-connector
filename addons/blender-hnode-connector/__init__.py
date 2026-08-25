@@ -17,6 +17,8 @@ from bthl.operator.frame_snapshot_modal import FrameSnapshotSettings, FrameSnaps
 from bthl.operator.copy_property import OBJECT_OT_copy_custom_property_to_selected
 from bthl.operator.setup_dmx_properties import OBJECT_OT_add_base_dmx_custom_properties
 from bthl.operator.duplicate_property import OBJECT_OT_duplicate_custom_property
+from bthl.operator.animate_constraint_influence import OBJECT_OT_animate_constraint_influence
+from bthl.operator.keyframe_custom_properties import OBJECT_OT_keyframe_custom_properties
 from bthl.tasks.sender import UDPClientTasks
 from bthl.tasks.customproperties import CustomPropertiesTask
 from bthl.tasks.frame_snapshot_exporter import FrameSnapshotTask
@@ -36,6 +38,8 @@ classes = {
     OBJECT_OT_copy_custom_property_to_selected,
     OBJECT_OT_add_base_dmx_custom_properties,
     OBJECT_OT_duplicate_custom_property,
+    OBJECT_OT_animate_constraint_influence,
+    OBJECT_OT_keyframe_custom_properties,
 }
 
 def fixorder(scene: bpy.types.Scene, depsgraph: bpy.types.Depsgraph):
